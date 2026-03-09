@@ -1,10 +1,9 @@
 package com.example.springboot.controller;
 
-import com.alibaba.fastjson.JSONObject;
 import com.example.springboot.common.Result;
 import com.example.springboot.entity.Message;
-import com.project.platform.entity.MessageRequest;
-import com.project.platform.vo.ResponseVO;
+import cn.hutool.json.JSONObject;
+import cn.hutool.json.JSONUtil;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -64,9 +63,9 @@ public class CustomerServiceController {
         String url = "http://localhost:3001/api/v1/workspace/aiserver/thread/9fb069f2-1251-41a3-8e2e-da6bfeb801b5/chat";
         String content = restTemplate.postForObject(url, r, String.class);
 
-
-        JSONObject jsonObject = JSONObject.parseObject(content);
-        String aiAnswer = (String)jsonObject.get("textResponse");
+        
+        JSONObject jsonObject = JSONUtil.parseObj(content);
+        String aiAnswer = jsonObject.getStr("textResponse");
         content = aiAnswer.split("</think>")[1];
         return  Result.success(content);
     }
