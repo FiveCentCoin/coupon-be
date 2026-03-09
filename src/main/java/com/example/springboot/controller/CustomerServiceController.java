@@ -56,18 +56,18 @@ public class CustomerServiceController {
 //  请求头数据
         HttpHeaders requestHeaders = new HttpHeaders();
         requestHeaders.setContentType(MediaType.APPLICATION_JSON);
-        requestHeaders.set("Authorization","PHHR5RS-A92MCC8-MGZXVH3-PKT0KTP");
+        requestHeaders.set("Authorization","Bearer BWP9CZX-XT4MMFX-MAZNRBS-089EGYW");
         requestHeaders.set("accept", "application/json");
         HttpEntity<Map<String, Object>> r = new HttpEntity<Map<String, Object>>(requestBody, requestHeaders);
 
-        String url = "http://localhost:3001/api/v1/workspace/aiserver/thread/9fb069f2-1251-41a3-8e2e-da6bfeb801b5/chat";
+        String url = "http://localhost:3001/api/v1/workspace/ollamade/thread/d32477e6-d829-4590-a59b-8ca2c2ea9fd9/chat";
         String content = restTemplate.postForObject(url, r, String.class);
 
         
         JSONObject jsonObject = JSONUtil.parseObj(content);
         String aiAnswer = jsonObject.getStr("textResponse");
-        content = aiAnswer.split("</think>")[1];
-        return  Result.success(content);
+//        content = aiAnswer.split("</think>")[1];
+        return  Result.success(aiAnswer);
     }
 
 }
