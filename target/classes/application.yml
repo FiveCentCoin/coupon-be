@@ -1,0 +1,17 @@
+server:
+  port: 9999
+  tomcat:
+    max-connections: 30000
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/coupon?useSSL=false&useUnicode=true&characterEncoding=UTF-8&serverTimezone=GMT%2b8
+    username: root
+    password: 123456
+  servlet:
+    multipart:
+      max-file-size: 200MB
+      max-request-size: 200MB
+
+ip: localhost
