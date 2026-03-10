@@ -39,7 +39,10 @@ public class CustomerServiceController {
         Prompt prompt = new Prompt(new UserMessage(messages));
         ChatResponse chatResponse = ollamaChatModel.call(prompt);
         String content = chatResponse.getResult().getOutput().getContent();
-         content = content.split("</think>")[1];
+        String[] parts = content.split("</think>");
+        if (parts.length > 1) {
+            content = parts[1];
+        }
         System.out.println("content = " + content);
         return Result.success(content);
     }
@@ -66,8 +69,13 @@ public class CustomerServiceController {
         
         JSONObject jsonObject = JSONUtil.parseObj(content);
         String aiAnswer = jsonObject.getStr("textResponse");
-//        content = aiAnswer.split("</think>")[1];
-        return  Result.success(aiAnswer);
+        String[] parts = aiAnswer.split("</think>");
+        if (parts.length > 1) {
+            content = parts[1];
+        } else {
+            content = aiAnswer;
+        }
+        return  Result.success(content);
     }
 
 }
