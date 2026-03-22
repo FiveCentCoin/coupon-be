@@ -55,7 +55,16 @@ public class CarouselServiceImpl implements ICarouselService {
 
         Page<Carousel> carouselPage = carouselMapper.selectPage(page, queryWrapper);
         carouselPage.getRecords().stream().forEach(carousel -> {
-            carousel.setGoodsName(goodsMapper.selectById(carousel.getGoodsId()).getName());
+            if (carousel.getGoodsId() != null) {
+                com.example.springboot.entity.Goods goods = goodsMapper.selectById(carousel.getGoodsId());
+                if (goods != null) {
+                    carousel.setGoodsName(goods.getName());
+                } else {
+                    carousel.setGoodsName("商品已删除");
+                }
+            } else {
+                carousel.setGoodsName("无关联商品");
+            }
         });
         return carouselPage;
     }
