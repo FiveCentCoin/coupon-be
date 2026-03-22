@@ -102,7 +102,7 @@ public class OrdersServiceImpl implements IOrdersService {
         // 1、查询登录用户的余额是否充足
         User user = userMapper.selectById(orders.getUserId());
         // 2、如果充足，改变订单状态并且余额减去对应的值
-        if (user.getAccount() > orders.getPrice()){
+        if (user.getAccount() >= orders.getPrice()){
             orders.setState("已支付");
             ordersMapper.updateById(orders);
 
