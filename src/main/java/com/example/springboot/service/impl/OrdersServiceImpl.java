@@ -7,12 +7,17 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.springboot.entity.Goods;
 import com.example.springboot.entity.Orders;
 import com.example.springboot.entity.User;
+import com.example.springboot.entity.UserCoupon;
+import com.example.springboot.entity.Coupon;
 import com.example.springboot.exception.ServiceException;
 import com.example.springboot.mapper.GoodsMapper;
 import com.example.springboot.mapper.OrdersMapper;
 import com.example.springboot.mapper.UserMapper;
 import com.example.springboot.service.IOrdersService;
+import com.example.springboot.service.IUserCouponService;
+import com.example.springboot.service.ICouponService;
 import com.example.springboot.utils.TokenUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -31,6 +36,12 @@ public class OrdersServiceImpl implements IOrdersService {
 
     @Autowired
     private UserMapper userMapper;
+
+    @Autowired
+    private IUserCouponService userCouponService;
+
+    @Autowired
+    private ICouponService couponService;
 
     @Override
     public void save(Orders orders) {
@@ -99,19 +110,66 @@ public class OrdersServiceImpl implements IOrdersService {
 
     @Override
     public void pay(Orders orders) {
-        // 1、查询登录用户的余额是否充足
+        // 1、计算实际支付金额
+        double actualPrice = orders.getPrice();
+        if (orders.getCouponId() != null) {
+            // 2、查询用户优惠券
+            UserCoupon userCoupon = userCouponService.getById(orders.getCouponId());
+            if (userCoupon == null) {
+                throw new ServiceException("201", "优惠券不存在");
+            }
+            if (userCoupon.getStatus() != 0) {
+                throw new ServiceException("201", "优惠券已使用或过期");
+            }
+            if (!userCoupon.getUserId().equals((long) orders.getUserId())) {
+                throw new ServiceException("201", "优惠券不属于当前用户");
+            }
+            
+            // 3、查询优惠券信息
+            Coupon coupon = couponService.getById(userCoupon.getCouponId());
+            if (coupon == null) {
+                throw new ServiceException("201", "优惠券信息不存在");
+            }
+            if (coupon.getStatus() != 1) {
+                throw new ServiceException("201", "优惠券已禁用");
+            }
+            
+            // 4、计算优惠金额
+            if (coupon.getType() == 1) { // 满减券
+                if (actualPrice >= coupon.getMinAmount().doubleValue()) {
+                    actualPrice -= coupon.getDiscountAmount().doubleValue();
+                } else {
+                    throw new ServiceException("201", "未达到满减条件");
+                }
+            } else if (coupon.getType() == 2) { // 无门槛券
+                actualPrice -= coupon.getDiscountAmount().doubleValue();
+                if (actualPrice < 0) {
+                    actualPrice = 0;
+                }
+            } else if (coupon.getType() == 3) { // 折扣券
+                actualPrice *= coupon.getDiscountRate().doubleValue() / 100;
+            }
+            
+            // 5、更新优惠券状态
+            userCoupon.setStatus(1);
+            userCoupon.setUseTime(java.time.LocalDateTime.now());
+            userCoupon.setOrderId((long) orders.getId());
+            userCouponService.updateById(userCoupon);
+        }
+        
+        // 6、查询登录用户的余额是否充足
         User user = userMapper.selectById(orders.getUserId());
-        // 2、如果充足，改变订单状态并且余额减去对应的值
-        if (user.getAccount() >= orders.getPrice()){
-            orders.setState("已支付");
-            ordersMapper.updateById(orders);
-
-            // 更新余额
-            user.setAccount(user.getAccount() - orders.getPrice());
-            userMapper.updateById(user);
-        } else{
-            // 3、如果余额不足，就给前台提示 ’余额不足，请充值‘
+        if (user.getAccount() < actualPrice) {
             throw new ServiceException("201", "余额不足，请充值~");
         }
+        
+        // 7、更新订单状态和实际支付金额
+        orders.setState("已支付");
+        orders.setActualPrice(actualPrice);
+        ordersMapper.updateById(orders);
+
+        // 8、更新余额
+        user.setAccount(user.getAccount() - actualPrice);
+        userMapper.updateById(user);
     }
 }

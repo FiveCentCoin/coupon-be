@@ -24,9 +24,15 @@ public class Orders {
     private String state;
     private Integer userId;
 
+    private Long couponId;
+    private Double actualPrice;
+
     @TableField(exist = false)
     private Goods goods;
 
     @TableField(exist = false)
     private User user;
+
+    @TableField(exist = false)
+    private UserCoupon coupon;
 }
