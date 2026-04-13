@@ -138,4 +138,16 @@ public class GoodsServiceImpl implements IGoodsService {
         // 3、封装数据
         return list;
     }
+
+    @Override
+    public List<Goods> selectAvailableGoods(Integer limit) {
+        LambdaQueryWrapper<Goods> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Goods::getState, "上架");
+        queryWrapper.ge(Goods::getStore, 1);
+        queryWrapper.ge(Goods::getPrice, 1.0);
+        queryWrapper.orderByAsc(Goods::getPrice);
+        queryWrapper.last("LIMIT " + limit);
+
+        return goodsMapper.selectList(queryWrapper);
+    }
 }

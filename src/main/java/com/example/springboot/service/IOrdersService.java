@@ -33,6 +33,13 @@ public interface IOrdersService {
     Orders selectById(Integer id);
 
     /**
+     * 根据ID查询（别名方法）
+     */
+    default Orders getById(Integer id) {
+        return selectById(id);
+    }
+
+    /**
      * 分页查询
      */
     IPage<Orders> selectPage(Integer pageNum, Integer pageSize, String name, String orderNo);
@@ -41,4 +48,9 @@ public interface IOrdersService {
      * 支付功能
      */
     void pay(Orders orders);
+
+    /**
+     * 批量支付功能
+     */
+    void batchPay(List<Integer> orderIds, Long couponId);
 }

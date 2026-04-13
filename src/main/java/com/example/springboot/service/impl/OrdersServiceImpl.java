@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -170,6 +171,82 @@ public class OrdersServiceImpl implements IOrdersService {
 
         // 8、更新余额
         user.setAccount(user.getAccount() - actualPrice);
+        userMapper.updateById(user);
+    }
+
+    @Override
+    public void batchPay(List<Integer> orderIds, Long couponId) {
+        if (orderIds == null || orderIds.isEmpty()) {
+            throw new ServiceException("201", "订单列表不能为空");
+        }
+
+        BigDecimal totalAmount = BigDecimal.ZERO;
+        for (Integer orderId : orderIds) {
+            Orders order = ordersMapper.selectById(orderId);
+            if (order == null) {
+                throw new ServiceException("201", "订单ID " + orderId + " 不存在");
+            }
+            if (!"待付款".equals(order.getState())) {
+                throw new ServiceException("201", "订单ID " + orderId + " 不是待付款状态");
+            }
+            totalAmount = totalAmount.add(new BigDecimal(order.getPrice().toString()));
+        }
+
+        BigDecimal actualTotalPrice = totalAmount;
+        if (couponId != null) {
+            UserCoupon userCoupon = userCouponService.getById(couponId);
+            if (userCoupon == null) {
+                throw new ServiceException("201", "优惠券不存在");
+            }
+            if (userCoupon.getStatus() != 0) {
+                throw new ServiceException("201", "优惠券已使用或过期");
+            }
+
+            Coupon coupon = couponService.getById(userCoupon.getCouponId());
+            if (coupon == null) {
+                throw new ServiceException("201", "优惠券信息不存在");
+            }
+            if (coupon.getStatus() != 1) {
+                throw new ServiceException("201", "优惠券已禁用");
+            }
+
+            if (coupon.getType() == 1) {
+                if (totalAmount.compareTo(coupon.getMinAmount()) < 0) {
+                    throw new ServiceException("201", "未达到满减条件");
+                }
+                actualTotalPrice = totalAmount.subtract(coupon.getDiscountAmount());
+            } else if (coupon.getType() == 2) {
+                actualTotalPrice = totalAmount.subtract(coupon.getDiscountAmount());
+                if (actualTotalPrice.compareTo(BigDecimal.ZERO) < 0) {
+                    actualTotalPrice = BigDecimal.ZERO;
+                }
+            } else if (coupon.getType() == 3) {
+                actualTotalPrice = totalAmount.multiply(coupon.getDiscountRate());
+            }
+
+            userCoupon.setStatus(1);
+            userCoupon.setUseTime(java.time.LocalDateTime.now());
+            userCoupon.setOrderId((long) orderIds.get(0));
+            userCouponService.updateById(userCoupon);
+        }
+
+        User currentUser = TokenUtils.getCurrentUser();
+        User user = userMapper.selectById(currentUser.getId());
+        if (user.getAccount() < actualTotalPrice.doubleValue()) {
+            throw new ServiceException("201", "余额不足，请充值~");
+        }
+
+        for (Integer orderId : orderIds) {
+            Orders order = ordersMapper.selectById(orderId);
+            order.setState("已支付");
+            double proportion = order.getPrice() / totalAmount.doubleValue();
+            double orderActualPrice = actualTotalPrice.doubleValue() * proportion;
+            order.setActualPrice(orderActualPrice);
+            order.setCouponId(couponId);
+            ordersMapper.updateById(order);
+        }
+
+        user.setAccount(user.getAccount() - actualTotalPrice.doubleValue());
         userMapper.updateById(user);
     }
 }

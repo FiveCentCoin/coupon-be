@@ -51,4 +51,6 @@ public interface IGoodsService {
     IPage<Goods> selectPageType(Integer pageNum, Integer pageSize, String name, Integer typeId);
 
     List<JSONObject> echarts();
+
+    List<Goods> selectAvailableGoods(Integer limit);
 }

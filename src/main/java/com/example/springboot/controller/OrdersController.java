@@ -7,6 +7,9 @@ import com.example.springboot.service.IOrdersService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.Map;
+
 @CrossOrigin
 @RestController
 @RequestMapping("/orders")
@@ -75,6 +78,17 @@ public class OrdersController {
     @PostMapping("/pay")
     public Result pay(@RequestBody Orders orders){
         ordersService.pay(orders);
+        return Result.success();
+    }
+
+    /**
+     * 批量支付接口
+     */
+    @PostMapping("/batchPay")
+    public Result batchPay(@RequestBody Map<String, Object> params){
+        List<Integer> orderIds = (List<Integer>) params.get("orderIds");
+        Long couponId = params.get("couponId") != null ? Long.valueOf(params.get("couponId").toString()) : null;
+        ordersService.batchPay(orderIds, couponId);
         return Result.success();
     }
 }
